@@ -1,14 +1,18 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
-import collections
+try:
+    from collections.abc import Collection
+except ImportError:
+    # In python <3.3 collections.abc doesn't exist
+    from collections import Collection
 import numpy as np
 from math import *
-from random import random, randint
+from random import randint
 import bluesky as bs
 from bluesky.tools import datalog, geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
-                         vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
+                         vatmos,  vtas2cas, vtas2mach, vcasormach
 
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -167,6 +171,9 @@ class Traffic(TrafficArrays):
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Traffic, self).reset()
         self.ntraf = 0
+
+        # reset performance model
+        self.perf.reset()
 
         # Reset models
         self.wind.clear()
@@ -335,8 +342,9 @@ class Traffic(TrafficArrays):
 
     def delete(self, idx):
         """Delete an aircraft"""
-        # if this is a multiple delete, sort first for list delete
-        if isinstance(idx, collections.abc.Collection):
+        # If this is a multiple delete, sort first for list delete
+        # (which will use list in reverse order to avoid index confusion)
+        if isinstance(idx, Collection):
             idx.sort()
 
         # Call the actual delete function
@@ -420,6 +428,7 @@ class Traffic(TrafficArrays):
         need_az = np.abs(delta_vs) > 300 * fpm   # small threshold
         self.az = need_az * np.sign(delta_vs) * (300 * fpm)   # fixed vertical acc approx 1.6 m/s^2
         self.vs = np.where(need_az, self.vs+self.az*simdt, target_vs)
+        self.vs = np.where(np.isfinite(self.vs), self.vs, 0)    # fix vs nan issue
 
     def UpdateGroundSpeed(self, simdt):
         # Compute ground speed and track from heading, airspeed and wind
@@ -521,7 +530,6 @@ class Traffic(TrafficArrays):
             route         = self.ap.route[idx]
 
             # Position report
-
             lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
                   + "Pos: "+latlon+ "\n"                                  \
                   + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
