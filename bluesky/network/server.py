@@ -138,6 +138,7 @@ class Server(Thread):
                     sender_id = route[0]
 
                     if eventname == b'REGISTER':
+                        print("Server: REGISTER")
                         # This is a registration message for a new connection
                         # Reply with our host ID
                         src.send_multipart([sender_id, self.host_id, b'REGISTER', b''])
@@ -155,6 +156,7 @@ class Server(Thread):
                         continue # No message needs to be forwarded
 
                     elif eventname == b'NODESCHANGED':
+                        print("Server: NODESCHANGED")
                         servers_upd = msgpack.unpackb(data, encoding='utf-8')
                         # Update the route with a hop to the originating server
                         for server in servers_upd.values():
@@ -168,12 +170,14 @@ class Server(Thread):
                                 self.fe_event.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
 
                     elif eventname == b'ADDNODES':
+                        print("Server: ADDNODES")
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
                         continue # No message needs to be forwarded
 
                     elif eventname == b'STATECHANGE':
+                        print("Server: STATECHANGE")
                         state = msgpack.unpackb(data)
                         if state < bs.OP:
                             # If we have batch scenarios waiting, send
@@ -188,11 +192,13 @@ class Server(Thread):
                         continue
 
                     elif eventname == b'QUIT':
+                        print("Server: QUIT")
                         # Send quit to all nodes
                         route = [self.host_id, b'*']
                         self.running = False
 
                     elif eventname == b'BATCH':
+                        print("Server: BATCH")
                         scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
                         self.scenarios = [scen for scen in split_scenarios(scentime, scencmd)]
                         # Check if the batch list contains scenarios
@@ -220,6 +226,12 @@ class Server(Thread):
                     # (or the destination)
                     route.append(route.pop(0))
                     msg = route + [eventname, data]
+
+                    if b'Hello darkness' in data:
+                        print("... my old friend")
+
+                    print('send_multipart: {0}'.format(msg))
+
                     if route[0] == b'*':
                         # This is a send-to-all message
                         msg.insert(0, b'')

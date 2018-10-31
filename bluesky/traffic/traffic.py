@@ -1,10 +1,15 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
+
 try:
     from collections.abc import Collection
 except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+    try:
+        # In python <3.3 collections.abc doesn't exist
+        from collections import Collection
+    except:
+        pass
+
 import numpy as np
 from math import *
 from random import randint
@@ -344,7 +349,8 @@ class Traffic(TrafficArrays):
         """Delete an aircraft"""
         # If this is a multiple delete, sort first for list delete
         # (which will use list in reverse order to avoid index confusion)
-        if isinstance(idx, Collection):
+
+        if isinstance(idx, np.ndarray):
             idx.sort()
 
         # Call the actual delete function

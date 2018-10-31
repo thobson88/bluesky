@@ -146,6 +146,9 @@ def Simulation(detached):
             self.state = bs.HOLD
 
         def reset(self):
+
+            print('SIM RESET')
+
             self.state = bs.INIT
             self.syst = -1.0
             self.simt = 0.0
@@ -200,6 +203,9 @@ def Simulation(detached):
             return result
 
         def event(self, eventname, eventdata, sender_rte):
+
+            print('SIM EVT: {0} {1}'.format(eventname, eventdata))
+
             # Keep track of event processing
             event_processed = False
 
