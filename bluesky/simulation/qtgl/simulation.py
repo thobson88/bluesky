@@ -127,6 +127,7 @@ def Simulation(detached):
                 self.prevstate = self.state
 
         def stop(self):
+            print('SIM STOP')
             self.state = bs.END
             datalog.reset()
 

@@ -230,7 +230,8 @@ class Server(Thread):
                     if b'Hello darkness' in data:
                         print("... my old friend")
 
-                    print('send_multipart: {0}'.format(msg))
+                    if eventname != b'ECHO':
+                        print('send_multipart: {0}'.format(msg))
 
                     if route[0] == b'*':
                         # This is a send-to-all message

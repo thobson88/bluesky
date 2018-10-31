@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
             app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
 
         uic.loadUi(os.path.join(bs.settings.gfx_path, 'mainwindow.ui'), self)
+        self.setWindowTitle('RedSky')
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback

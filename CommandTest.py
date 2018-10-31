@@ -2,40 +2,14 @@
 
 from __future__ import print_function
 
-def tcpTest():
+from bluesky.network.client import Client
+import time
 
-    from bluesky.tools.network import StackTelnetServer
-    import socket
-
-    TCP_HOST = '127.0.0.1'
-    TCP_PORT = 9000
-
-    #telnet_in = StackTelnetServer()
-
-    sock = socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((TCP_HOST, TCP_PORT))
-
-    # sock.send()???
-
-    sock.close()
-
-    # parent_pid = os.getpid()
-    # parent = psutil.Process(parent_pid)
-    # child = parent.children(recursive=False)[0]
-    # child.send_signal(signal.SIGKILL)
-
-
-def eventImpl(self, name, data, sender_id):
-    print("Event!")
-
-
-def clientTest():
-
-    from bluesky.network.client import Client
+def client_test():
+    ''' Create a client, connect, send basic command '''
 
     try:
         client = Client()
-        client.event = eventImpl
 
         client.connect(event_port=9000, stream_port=9001)
 
@@ -47,13 +21,11 @@ def clientTest():
         pass
 
 
-def resetTest():
-
-    from bluesky.network.client import Client
+def reset_test():
+    ''' Send the reset (IC IC) command '''
 
     try:
         client = Client()
-        client.event = eventImpl
         client.connect(event_port=9000, stream_port=9001)
 
         # Send reset command
@@ -64,8 +36,24 @@ def resetTest():
         pass
 
 
+def recv_test():
+    ''' Test we can receive some from server -> client '''
+
+    try:
+        client = Client()
+        client.connect(event_port=9000, stream_port=9001)
+
+        # TODO:
+        #client.subscribe(b'ECHO')
+        #client.send_event(b'ECHO', 'Hello there!', target=b'*')
+
+    except Exception as e:
+        print(e)
+        pass
+
+
 if __name__ == '__main__':
 
-    #tcpTest()
-    #clientTest()
-    resetTest()
+    #client_test()
+    #reset_test()
+    recv_test()
