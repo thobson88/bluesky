@@ -8,7 +8,7 @@ import zmq
 from bluesky.network.client import Client
 from bluesky.network.npcodec import decode_ndarray
 
-
+# Subclass of the BlueSky network client object
 class TestClient(Client):
 
     def __init__(self):
@@ -67,6 +67,7 @@ class TestClient(Client):
 def get_client():
     try:
         client = TestClient()
+        # 9000 seems to be the default server event port, not sure about the use of the stream_port
         client.connect(event_port=9000, stream_port=9001)
     except Exception as e:
         print(e)
@@ -117,8 +118,12 @@ if __name__ == '__main__':
         try:
             while True:
                 cmd = input('> ')
+
+                # Send on the input using the 'STACKCMD' function. This tells the server to pass the message
+                # onto the simulation
                 if cmd != '':
                     client.send_event(b'STACKCMD', cmd, target=b'*')
+
         except (KeyboardInterrupt, EOFError):
             sys.exit(0)
         finally:

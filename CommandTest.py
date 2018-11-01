@@ -37,7 +37,7 @@ def reset_test():
 
 
 def recv_test():
-    ''' Test we can receive some from server -> client '''
+    ''' Test we can receive some data from server -> client '''
 
     try:
         client = Client()
@@ -55,5 +55,5 @@ def recv_test():
 if __name__ == '__main__':
 
     #client_test()
-    #reset_test()
-    recv_test()
+    reset_test()
+    #recv_test()
