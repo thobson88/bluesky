@@ -1,23 +1,24 @@
 ''' BlueSky simulation server. '''
 import os
-from multiprocessing import cpu_count
-from threading import Thread
 import sys
+from multiprocessing import cpu_count
 from subprocess import Popen
-import zmq
+from threading import Thread
+
 import msgpack
+import zmq
 
 # Local imports
 import bluesky as bs
-
+from bluesky.network.common import get_hexid
 from .discovery import Discovery
-
 
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
                                   simevent_port=10000, simstream_port=10001,
                                   enable_discovery=False)
+
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -41,7 +42,7 @@ class Server(Thread):
         self.host_id = b'\x00' + os.urandom(4)
         self.clients = []
         self.workers = []
-        self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
+        self.servers = {self.host_id: dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
 
         if bs.settings.enable_discovery or headless:
@@ -63,6 +64,9 @@ class Server(Thread):
 
     def run(self):
         ''' The main loop of this server. '''
+
+        print('Host {} running'.format(get_hexid(self.host_id)))
+
         # Get ZMQ context
         ctx = zmq.Context.instance()
 
@@ -76,7 +80,7 @@ class Server(Thread):
             bs.settings.event_port, bs.settings.stream_port))
 
         # Create connection points for sim workers
-        self.be_event  = ctx.socket(zmq.ROUTER)
+        self.be_event = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
         self.be_event.bind('tcp://*:{}'.format(bs.settings.simevent_port))
         self.be_stream = ctx.socket(zmq.XSUB)
@@ -118,7 +122,7 @@ class Server(Thread):
                         # This is a request from someone else: send a reply
                         print('Sending reply')
                         self.discovery.send_reply(bs.settings.event_port,
-                            bs.settings.stream_port)
+                                                  bs.settings.stream_port)
                     continue
                 # Receive the message
                 msg = sock.recv_multipart()
@@ -150,10 +154,10 @@ class Server(Thread):
                             src.send_multipart([sender_id, self.host_id, b'NODESCHANGED', data])
                         else:
                             self.workers.append(sender_id)
-                            data = msgpack.packb({self.host_id : self.servers[self.host_id]}, use_bin_type=True)
+                            data = msgpack.packb({self.host_id: self.servers[self.host_id]}, use_bin_type=True)
                             for client_id in self.clients:
                                 dest.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
-                        continue # No message needs to be forwarded
+                        continue  # No message needs to be forwarded
 
                     elif eventname == b'NODESCHANGED':
                         print("Server: NODESCHANGED")
@@ -174,7 +178,7 @@ class Server(Thread):
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
-                        continue # No message needs to be forwarded
+                        continue  # No message needs to be forwarded
 
                     elif eventname == b'STATECHANGE':
                         print("Server: STATECHANGE")

@@ -5,6 +5,7 @@ import msgpack
 import zmq
 
 from bluesky.network import Client
+from bluesky.network.common import get_hexid
 from bluesky.network.npcodec import decode_ndarray
 
 
@@ -35,9 +36,6 @@ class TestClient(Client):
                         'text' in pydata and \
                         pydata['text'] != '':
                     print(pydata['text'])
-
-                # print("Tmp: {}".format(pydata))
-                # print('Pydata[text]: {}'.format(pydata['text']))
 
                 if eventname == b'NODESCHANGED':
                     self.servers.update(pydata)
@@ -75,6 +73,8 @@ class TestClient(Client):
 def get_client():
     try:
         client = TestClient()
+        print('Client created (ID: {})'.format(get_hexid(client.client_id)))
+
         # 9000 seems to be the default server event port, not sure about the use of the stream_port
         client.connect(event_port=9000, stream_port=9001)
     except Exception as e:

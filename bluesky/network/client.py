@@ -1,11 +1,14 @@
 ''' BlueSky client base class. '''
 import os
-import zmq
+
 import msgpack
+import zmq
+
 import bluesky
-from bluesky.tools import Signal
+from bluesky.network.common import get_hexid
 from bluesky.network.discovery import Discovery
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
+from bluesky.tools import Signal
 
 
 class Client(object):
@@ -81,7 +84,7 @@ class Client(object):
         self.event_io.connect(econ)
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        print('Client {} connected to host {}'.format(self.client_id, self.host_id))
+        print('Client {} connected to host {}'.format(get_hexid(self.client_id), get_hexid(self.host_id)))
         self.stream_in.connect(scon)
 
         self.poller.register(self.event_io, zmq.POLLIN)
