@@ -18,17 +18,15 @@ class TestClient(Client):
         try:
             socks = dict(self.poller.poll(timeout))
             if socks.get(self.event_io) == zmq.POLLIN:
+
                 msg = self.event_io.recv_multipart()
+                print("Event msg: {}".format(msg))
 
                 # Remove send-to-all flag if present
                 if msg[0] == b'*':
                     msg.pop(0)
-                route, eventname, data = msg[:-2], msg[-2], msg[-1]
 
-                if eventname != b'ECHO':
-                    print('Msg: {0} {1} {2}'.format(route, eventname, data))
-                else:
-                    print('ECHO Data: {}'.format(data))
+                route, eventname, data = msg[:-2], msg[-2], msg[-1]
 
                 self.sender_id = route[0]
                 route.reverse()
@@ -49,6 +47,8 @@ class TestClient(Client):
             if socks.get(self.stream_in) == zmq.POLLIN:
                 msg = self.stream_in.recv_multipart()
 
+                print("Stream msg: {}".format(msg))
+
                 strmname = msg[0][:-5]
                 sender_id = msg[0][-5:]
                 pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, encoding='utf-8')
@@ -59,6 +59,7 @@ class TestClient(Client):
                 dmsg = self.discovery.recv_reqreply()
                 if dmsg.conn_id != self.client_id and dmsg.is_server:
                     self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
+
         except zmq.ZMQError:
             return False
 
