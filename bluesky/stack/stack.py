@@ -295,8 +295,8 @@ def init(startup_scnfile):
             "Create an aircraft that is in conflict with 'targetid'"
         ],
         "DATE": [
-            "DATE [day,month,year]",
-            "[int,int,int]",
+            "DATE [day,month,year,HH:MM:SS.hh]",
+            "[int,int,int,txt]",
             lambda *args: bs.sim.setutc(*args),
             "Set simulation date"
         ],
@@ -541,7 +541,7 @@ def init(startup_scnfile):
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
             "txt,[txt,...]",
-            lambda *args: openfile(args, mergeWithExisting=True),
+            lambda fname, *args: openfile(fname, args, mergeWithExisting=True),
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
