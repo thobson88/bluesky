@@ -1,11 +1,10 @@
-import time, datetime
+import datetime
+import time
 
 # Local imports
 import bluesky as bs
 from bluesky import settings, stack
 from bluesky.tools import datalog, areafilter, plugin, plotter
-from bluesky.tools.misc import txt2tim, tim2txt
-
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -27,6 +26,7 @@ def Simulation(detached):
 
     class SimulationClass(Node):
         ''' The simulation object. '''
+
         def __init__(self):
             super(SimulationClass, self).__init__(settings.simevent_port,
                                                   settings.simstream_port)
@@ -102,7 +102,6 @@ def Simulation(detached):
             stack.process()
 
             if self.state == bs.OP:
-
                 bs.traf.update(self.simt, self.simdt)
 
                 # Update plugins
@@ -147,9 +146,6 @@ def Simulation(detached):
             self.state = bs.HOLD
 
         def reset(self):
-
-            print('SIM RESET')
-
             self.state = bs.INIT
             self.syst = -1.0
             self.simt = 0.0
@@ -171,7 +167,7 @@ def Simulation(detached):
 
         def setDtMultiplier(self, mult):
             self.dtmult = mult
-            self.sysdt  = self.simdt / self.dtmult
+            self.sysdt = self.simdt / self.dtmult
 
         def setFixdt(self, flag, nsec=None):
             if flag:
@@ -188,7 +184,7 @@ def Simulation(detached):
 
         def benchmark(self, fname='IC', dt=300.0):
             stack.ic(fname)
-            self.bencht  = 0.0  # Start time will be set at next sim cycle
+            self.bencht = 0.0  # Start time will be set at next sim cycle
             self.benchdt = dt
 
         def sendState(self):
@@ -205,6 +201,7 @@ def Simulation(detached):
 
         def event(self, eventname, eventdata, sender_rte):
 
+            #print('Node {} received {} data from {}'.format(self.node_id, eventname, sender_id))
             print('SIM EVT: {0} {1}'.format(eventname, eventdata))
 
             # Keep track of event processing
@@ -226,7 +223,7 @@ def Simulation(detached):
                 self.quit()
             elif eventname == b'GETSIMSTATE':
                 # Send list of stack functions available in this sim to gui at start
-                stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
+                stackdict = {cmd: val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
                 shapes = [shape.raw for shape in areafilter.areas.values()]
                 simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom, stackcmds=stackdict, shapes=shapes)
                 self.send_event(b'SIMSTATE', simstate, target=sender_rte)

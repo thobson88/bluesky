@@ -15,7 +15,6 @@ class Node(object):
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
-        print('Node {} received {} data from {}'.format(self.node_id, eventname, sender_id))
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''

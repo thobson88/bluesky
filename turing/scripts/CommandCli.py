@@ -20,7 +20,6 @@ class TestClient(Client):
             if socks.get(self.event_io) == zmq.POLLIN:
 
                 msg = self.event_io.recv_multipart()
-                print("Event msg: {}".format(msg))
 
                 # Remove send-to-all flag if present
                 if msg[0] == b'*':
@@ -31,6 +30,9 @@ class TestClient(Client):
                 self.sender_id = route[0]
                 route.reverse()
                 pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
+
+                print('Event data: {}'.format(pydata))
+
                 if eventname == b'NODESCHANGED':
                     self.servers.update(pydata)
                     self.nodes_changed.emit(pydata)

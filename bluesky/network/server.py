@@ -224,18 +224,18 @@ class Server(Thread):
                         eventname = b'ECHO'
                         data = msgpack.packb(dict(text=echomsg, flags=0), use_bin_type=True)
 
+                    elif eventname == b'TEST_EVENT':
+                        print("... my old friend")
+
                     # ============================================================
                     # If we get here there is a message that needs to be forwarded
                     # Cycle the route by one step to get the next hop in the route
                     # (or the destination)
+                    
                     route.append(route.pop(0))
                     msg = route + [eventname, data]
 
-                    if b'Hello darkness' in data:
-                        print("... my old friend")
-
-                    if eventname != b'ECHO':
-                        print('send_multipart: {0}'.format(msg))
+                    print('send_multipart: {}'.format(msg))
 
                     if route[0] == b'*':
                         # This is a send-to-all message
