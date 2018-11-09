@@ -111,7 +111,7 @@ if __name__ == "__main__":
                 return False
 
 
-    scnFile = r'..\scenario\testControl.scn'
+    scnFile = r'../scenario/testControl.scn'
 
     # Aircraft ID for the above scenario, will need updated if you choose a different scenario
     acid = '1000'
