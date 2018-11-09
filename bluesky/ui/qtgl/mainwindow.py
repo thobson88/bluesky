@@ -95,8 +95,14 @@ class MainWindow(QMainWindow):
 
     modes = ['Init', 'Hold', 'Operate', 'End']
 
-    def __init__(self):
+    def __init__(self, mode):
         super(MainWindow, self).__init__()
+        # Running mode of this gui. Options:
+        #  - server-gui: Normal mode, starts bluesky server together with gui
+        #  - client: starts only gui in client mode, can connect to existing
+        #    server.
+        self.mode = mode
+
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
@@ -117,6 +123,7 @@ class MainWindow(QMainWindow):
             app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
 
         uic.loadUi(os.path.join(bs.settings.gfx_path, 'mainwindow.ui'), self)
+        self.setWindowTitle('RedSky')
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -221,7 +228,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event=None):
         # Send quit to server if we own the host
-        if not bs.settings.is_client:
+        if self.mode != 'client':
             bs.net.send_event(b'QUIT')
         app.instance().closeAllWindows()
         # return True
@@ -287,13 +294,12 @@ class MainWindow(QMainWindow):
 
     def on_simstream_received(self, streamname, data, sender_id):
         if streamname == b'SIMINFO':
-            speed, simdt, simt, simtclock, ntraf, state, scenname = data
+            speed, simdt, simt, simutc, ntraf, state, scenname = data
             simt = tim2txt(simt)[:-3]
-            simtclock = tim2txt(simtclock)[:-3]
             self.setNodeInfo(sender_id, simt, scenname)
             if sender_id == bs.net.actnode():
                 self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simtclock, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
+                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
         elif streamname == b'ACDATA':
             self.nconf_cur = data['nconf_cur']
             self.nconf_tot = data['nconf_tot']

@@ -16,6 +16,7 @@ ENG_TYPE_TS = 3         # turboshlft, rotor
 fixwing_aircraft_db = settings.perf_path_openap + "/fixwing/aircraft.json"
 fixwing_engine_db = settings.perf_path_openap + "/fixwing/engines.csv"
 fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/wrap/"
+fixwing_dragpolar_db = settings.perf_path_openap + "/fixwing/dragpolar.csv"
 
 rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
 
@@ -31,6 +32,11 @@ class Coefficient():
         self.actypes_fixwing = list(self.acs_fixwing.keys())
         self.actypes_rotor = list(self.acs_rotor.keys())
 
+        df = pd.read_csv(fixwing_dragpolar_db, index_col='mdl')
+        self.dragpolar_fixwing = df.to_dict(orient='index')
+        self.dragpolar_fixwing['NA'] = df.mean().to_dict()
+
+
     def __load_all_fixwing_flavor(self):
         import warnings
         warnings.simplefilter("ignore")
@@ -39,26 +45,31 @@ class Coefficient():
         allengines = pd.read_csv(fixwing_engine_db, encoding='utf-8')
         acs = json.load(open(fixwing_aircraft_db, 'r'))
         acs.pop('__comment')
+        acs_ = {}
 
         for mdl, ac in acs.items():
             acengines = ac['engines']
-            acs[mdl]['lifttype'] = LIFT_FIXWING
-            acs[mdl]['engines'] = {}
+            acs_[mdl.upper()] = ac.copy()
+            acs_[mdl.upper()]['lifttype'] = LIFT_FIXWING
+            acs_[mdl.upper()]['engines'] = {}
+
             for e in acengines:
                 e = e.strip().upper()
                 selengine = allengines[allengines['name'].str.startswith(e)]
                 if selengine.shape[0] >= 1:
                     engine = json.loads(selengine.iloc[-1, :].to_json())
-                    acs[mdl]['engines'][engine['name']] = engine
-        return acs
+                    acs_[mdl.upper()]['engines'][engine['name']] = engine
+        return acs_
 
     def __load_all_rotor_flavor(self):
         # read rotor aircraft
         acs = json.load(open(rotor_aircraft_db, 'r'))
         acs.pop('__comment')
+        acs_ = {}
         for mdl, ac in acs.items():
-            acs[mdl]['lifttype'] = LIFT_ROTOR
-        return acs
+            acs_[mdl.upper()] = ac.copy()
+            acs_[mdl.upper()]['lifttype'] = LIFT_ROTOR
+        return acs_
 
     def __load_all_fixwing_envelop(self):
         """ load aircraft envelop from the model database,

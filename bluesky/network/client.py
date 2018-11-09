@@ -1,15 +1,18 @@
 ''' BlueSky client base class. '''
 import os
-import zmq
+
 import msgpack
+import zmq
+
 import bluesky
-from bluesky.tools import Signal
+from bluesky.network.common import get_hexid
 from bluesky.network.discovery import Discovery
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
+from bluesky.tools import Signal
 
 
 class Client(object):
-    def __init__(self, actnode_topics):
+    def __init__(self, actnode_topics=b''):
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
         self.stream_in = ctx.socket(zmq.SUB)
@@ -27,6 +30,8 @@ class Client(object):
         self.nodes_changed = Signal()
         self.server_discovered = Signal()
         self.signal_quit = Signal()
+        self.event_received = Signal()
+        self.stream_received = Signal()
 
         # Tell bluesky that this client will manage the network I/O
         bluesky.net = self
@@ -49,14 +54,14 @@ class Client(object):
         return self.sender_id
 
     def event(self, name, data, sender_id):
-        ''' Default event handler for Client. Override or monkey-patch this function
-            to implement actual event handling. '''
-        print('Client {} received event {} from {}'.format(self.client_id, name, sender_id))
+        ''' Default event handler for Client. Override this function for added
+            functionality. '''
+        self.event_received.emit(name, data, sender_id)
 
     def stream(self, name, data, sender_id):
-        ''' Default stream handler for Client. Override or monkey-patch this function
-            to implement actual stream handling. '''
-        print('Client {} received stream {} from {}'.format(self.client_id, name, sender_id))
+        ''' Default stream handler for Client. Override this function for added
+            functionality. '''
+        self.stream_received.emit(name, data, sender_id)
 
     def actnode_changed(self, newact):
         ''' Default actnode change handler for Client. Override or monkey-patch this function
@@ -79,16 +84,16 @@ class Client(object):
         self.event_io.connect(econ)
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        print('Client {} connected to host {}'.format(self.client_id, self.host_id))
+        print('Client {} connected to host {}'.format(get_hexid(self.client_id), get_hexid(self.host_id)))
         self.stream_in.connect(scon)
 
         self.poller.register(self.event_io, zmq.POLLIN)
         self.poller.register(self.stream_in, zmq.POLLIN)
 
-    def receive(self):
+    def receive(self, timeout=0):
         ''' Poll for incoming data from Server, and receive if available. '''
         try:
-            socks = dict(self.poller.poll(0))
+            socks = dict(self.poller.poll(timeout))
             if socks.get(self.event_io) == zmq.POLLIN:
                 msg = self.event_io.recv_multipart()
                 # Remove send-to-all flag if present

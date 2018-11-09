@@ -1,31 +1,24 @@
 ''' BlueSky simulation server. '''
 import os
-from multiprocessing import cpu_count
 import sys
+from multiprocessing import cpu_count
 from subprocess import Popen
-import zmq
+from threading import Thread
+
 import msgpack
+import zmq
 
 # Local imports
 import bluesky as bs
-
+from bluesky.network.common import get_hexid
 from .discovery import Discovery
-
-if bs.settings.is_headless:
-    class ServerBase:
-        ''' Single-threaded implementation of server when running headless.'''
-        def run(self):
-            pass
-
-        def start(self):
-            self.run()
-else:
-    from threading import Thread as ServerBase
 
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
+                                  simevent_port=10000, simstream_port=10001,
                                   enable_discovery=False)
+
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -37,9 +30,10 @@ def split_scenarios(scentime, scencmd):
             start = i
 
 
-class Server(ServerBase):
+class Server(Thread):
     ''' Implementation of the BlueSky simulation server. '''
-    def __init__(self):
+
+    def __init__(self, headless):
         super(Server, self).__init__()
         self.spawned_processes = list()
         self.running = True
@@ -48,42 +42,49 @@ class Server(ServerBase):
         self.host_id = b'\x00' + os.urandom(4)
         self.clients = []
         self.workers = []
-        self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
+        self.servers = {self.host_id: dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
-        self.discovery = None
+
+        if bs.settings.enable_discovery or headless:
+            self.discovery = Discovery(self.host_id, is_client=False)
+        else:
+            self.discovery = None
 
     def sendScenario(self, worker_id):
         # Send a new scenario to the target sim process
         scen = self.scenarios.pop(0)
-        # qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Starting scenario ' + scen[0] + ' on node (%d, %d)' % conn[1]))
         data = msgpack.packb(scen)
         self.be_event.send_multipart([worker_id, self.host_id, b'BATCH', data])
 
     def addnodes(self, count=1):
         ''' Add [count] nodes to this server. '''
         for _ in range(count):
-            p = Popen([sys.executable, 'BlueSky_qtgl.py', '--sim'])
+            p = Popen([sys.executable, 'BlueSky.py', '--sim'])
             self.spawned_processes.append(p)
 
     def run(self):
         ''' The main loop of this server. '''
+
+        print('Host {} running'.format(get_hexid(self.host_id)))
+
         # Get ZMQ context
         ctx = zmq.Context.instance()
 
         # Create connection points for clients
-        self.fe_event  = ctx.socket(zmq.ROUTER)
+        self.fe_event = ctx.socket(zmq.ROUTER)
         self.fe_event.setsockopt(zmq.IDENTITY, self.host_id)
         self.fe_event.bind('tcp://*:{}'.format(bs.settings.event_port))
         self.fe_stream = ctx.socket(zmq.XPUB)
         self.fe_stream.bind('tcp://*:{}'.format(bs.settings.stream_port))
         print('Accepting event connections on port {}, and stream connections on port {}'.format(
             bs.settings.event_port, bs.settings.stream_port))
+
         # Create connection points for sim workers
-        self.be_event  = ctx.socket(zmq.ROUTER)
+        self.be_event = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
-        self.be_event.bind('tcp://*:10000')
+        self.be_event.bind('tcp://*:{}'.format(bs.settings.simevent_port))
         self.be_stream = ctx.socket(zmq.XSUB)
-        self.be_stream.bind('tcp://*:10001')
+        self.be_stream.bind('tcp://*:{}'.format(bs.settings.simstream_port))
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
@@ -92,10 +93,9 @@ class Server(ServerBase):
         poller.register(self.be_stream, zmq.POLLIN)
         poller.register(self.fe_stream, zmq.POLLIN)
 
-        if bs.settings.enable_discovery:
-            self.discovery = Discovery(self.host_id, is_client=False)
+        if self.discovery:
             poller.register(self.discovery.handle, zmq.POLLIN)
-        print('Discovery is {}abled'.format('en' if bs.settings.enable_discovery else 'dis'))
+        print('Discovery is {}abled'.format('en' if self.discovery else 'dis'))
 
         # Start the first simulation node
         self.addnodes()
@@ -122,7 +122,7 @@ class Server(ServerBase):
                         # This is a request from someone else: send a reply
                         print('Sending reply')
                         self.discovery.send_reply(bs.settings.event_port,
-                            bs.settings.stream_port)
+                                                  bs.settings.stream_port)
                     continue
                 # Receive the message
                 msg = sock.recv_multipart()
@@ -142,6 +142,7 @@ class Server(ServerBase):
                     sender_id = route[0]
 
                     if eventname == b'REGISTER':
+                        print("Server: REGISTER")
                         # This is a registration message for a new connection
                         # Reply with our host ID
                         src.send_multipart([sender_id, self.host_id, b'REGISTER', b''])
@@ -153,12 +154,13 @@ class Server(ServerBase):
                             src.send_multipart([sender_id, self.host_id, b'NODESCHANGED', data])
                         else:
                             self.workers.append(sender_id)
-                            data = msgpack.packb({self.host_id : self.servers[self.host_id]}, use_bin_type=True)
+                            data = msgpack.packb({self.host_id: self.servers[self.host_id]}, use_bin_type=True)
                             for client_id in self.clients:
                                 dest.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
-                        continue # No message needs to be forwarded
+                        continue  # No message needs to be forwarded
 
                     elif eventname == b'NODESCHANGED':
+                        print("Server: NODESCHANGED")
                         servers_upd = msgpack.unpackb(data, encoding='utf-8')
                         # Update the route with a hop to the originating server
                         for server in servers_upd.values():
@@ -172,12 +174,14 @@ class Server(ServerBase):
                                 self.fe_event.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
 
                     elif eventname == b'ADDNODES':
+                        print("Server: ADDNODES")
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
-                        continue # No message needs to be forwarded
+                        continue  # No message needs to be forwarded
 
                     elif eventname == b'STATECHANGE':
+                        print("Server: STATECHANGE")
                         state = msgpack.unpackb(data)
                         if state < bs.OP:
                             # If we have batch scenarios waiting, send
@@ -192,11 +196,13 @@ class Server(ServerBase):
                         continue
 
                     elif eventname == b'QUIT':
+                        print("Server: QUIT")
                         # Send quit to all nodes
                         route = [self.host_id, b'*']
                         self.running = False
 
                     elif eventname == b'BATCH':
+                        print("Server: BATCH")
                         scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
                         self.scenarios = [scen for scen in split_scenarios(scentime, scencmd)]
                         # Check if the batch list contains scenarios
@@ -218,12 +224,19 @@ class Server(ServerBase):
                         eventname = b'ECHO'
                         data = msgpack.packb(dict(text=echomsg, flags=0), use_bin_type=True)
 
+                    elif eventname == b'TEST_EVENT':
+                        print("... my old friend")
+
                     # ============================================================
                     # If we get here there is a message that needs to be forwarded
                     # Cycle the route by one step to get the next hop in the route
                     # (or the destination)
+                    
                     route.append(route.pop(0))
                     msg = route + [eventname, data]
+
+                    print('send_multipart: {}'.format(msg))
+
                     if route[0] == b'*':
                         # This is a send-to-all message
                         msg.insert(0, b'')

@@ -1,7 +1,16 @@
 """ Classes that derive from TrafficArrays (like Traffic) get automated create,
     delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
-import collections
+
+try:
+    from collections.abc import Collection
+except ImportError:
+    try:
+        # In python <3.3 collections.abc doesn't exist
+        from collections import Collection
+    except:
+        pass
+
 import numpy as np
 
 defaults = {"float": 0.0, "int": 0, "bool": False, "S": "", "str": ""}
@@ -109,7 +118,7 @@ class TrafficArrays(object):
             self.Vars[v] = np.delete(self.Vars[v], idx)
 
         if self.LstVars:
-            if isinstance(idx, collections.abc.Collection):
+            if isinstance(idx, np.ndarray):
                 for i in reversed(idx):
                     for v in self.LstVars:
                         del self.Vars[v][i]

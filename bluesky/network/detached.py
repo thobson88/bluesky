@@ -5,7 +5,7 @@ from bluesky.tools import Timer
 
 
 class Node(object):
-    def __init__(self):
+    def __init__(self, *args):
         self.node_id = b'\x00' + os.urandom(4)
         self.host_id = b''
         self.running = True
@@ -15,7 +15,6 @@ class Node(object):
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
-        print('Node {} received {} data from {}'.format(self.node_id, eventname, sender_id))
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
