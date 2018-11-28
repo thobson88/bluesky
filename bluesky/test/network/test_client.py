@@ -21,9 +21,11 @@ STREAM_PORT = 9001
 acid = '1000'
 altitude = 17000
 
+
 @pytest.fixture(scope="function")
 def server():
-    """ Start the server in headless mode. """
+    """Start the server in headless mode."""
+
     try:
         server = Server(True)
         server.start()
@@ -35,14 +37,17 @@ def server():
 
 
 def shutdown_server(server):
-    # Wait for the server thread to terminate.
-    # Make sure there are no spawned_processes else this will hang.
+    """Wait for the server thread to terminate.
+    Make sure there are no spawned_processes else this will hang."""
+
     for n in server.spawned_processes:
         n.kill()
     server.join()
 
 
 def get_client():
+    """Get a Client instance, connected to the server."""
+
     try:
         client = Client()
         client.connect(event_port=EVENT_PORT, stream_port=STREAM_PORT)
@@ -53,7 +58,7 @@ def get_client():
 
 
 def test_send_event_quit(server):
-    """ Send the 'QUIT' event. """
+    """Send the 'QUIT' event."""
 
     try:
         target = get_client()
@@ -68,6 +73,7 @@ def test_send_event_quit(server):
 
     finally:
         shutdown_server(server)
+
 
 def poll_for_position(client, server, acid, attr_name, target_string = 'Info on {}'.format(acid)):
     """ Poll the server for aircraft position.
@@ -125,10 +131,11 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
             sys.exit(0)
     return
 
-# Suppress the DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
+
+# Suppress DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
 @pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
 def test_send_event_stackcmd_cre_pos(server):
-    """ Send the 'STACKCMD' event to create aircraft & poll for position. """
+    """ Send the 'STACKCMD' event to create an aircraft & poll for its position. """
 
     try:
         target = get_client()
@@ -163,9 +170,10 @@ def test_send_event_stackcmd_cre_pos(server):
         target.send_event(b'QUIT')
         shutdown_server(server)
 
+
 @pytest.fixture(scope="function")
 def scenario_filename(tmpdir):
-    """ Write a temporary file containing scenario content. """
+    """Write a temporary file containing scenario content and return the filename."""
 
     scenario_content = \
         ("00:00:00.00>HOLD\n"
@@ -180,7 +188,7 @@ def scenario_filename(tmpdir):
     return p
 
 
-# Suppress the DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
+# Suppress DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
 @pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
 def test_send_event_stackcmd_ic_alt(server, scenario_filename):
     """ Send the 'STACKCMD' event to initialise a scenario & order a change of altitude. """
