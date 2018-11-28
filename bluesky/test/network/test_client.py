@@ -16,7 +16,7 @@ STREAM_PORT = 9001
 
 # Aircraft ID and altitude:
 acid = '1000'
-altitude = '17000'
+altitude = 17000
 
 @pytest.fixture(scope="session")
 def server():
@@ -124,7 +124,7 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
 
 # Suppress the DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
 @pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
-def test_send_event_stackcmd_pos(server):
+def test_send_event_stackcmd_cre_pos(server):
     """ Send the 'STACKCMD' event to create aircraft & poll for position. """
 
     try:
@@ -139,7 +139,7 @@ def test_send_event_stackcmd_pos(server):
         time.sleep(1)
 
         # Create an aircraft with a particular ID and altitude.
-        cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, altitude)
+        cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, str(altitude))
         target.send_event(b'STACKCMD', cre_command_data, target=b'*')
 
         assert target.sender_id == b'', "Client's sender_id differs from default (empty) value"
@@ -147,12 +147,82 @@ def test_send_event_stackcmd_pos(server):
 
         # Define an attribute name to hold the result (i.e. the text returned by the POS command).
         attr_name = "result"
+
+        # Poll for aircraft position information.
         poll_for_position(target, server, acid, attr_name)
 
         # Check the result, i.e. the text returned by the POS command.
         result = getattr(target, attr_name)
         assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
-        assert result.find('Alt: {} ft'.format(altitude)) != -1, "Failed to find aircraft altitude information"
+        assert result.find('Alt: {} ft'.format(str(altitude))) != -1, "Failed to find aircraft altitude information"
+
+    finally:
+        target.send_event(b'QUIT')
+        shutdown_server(server)
+
+@pytest.fixture(scope="function")
+def scenario_filename(tmpdir):
+    """ Write a temporary file containing scenario content. """
+
+    scenario_content = \
+        ("00:00:00.00>HOLD\n"
+         "00:00:00.00>SSD ALL\n"
+         "00:00:00.00>ZOOM OUT 100\n"
+         "00:00:00.00>PAN 0 0\n\n"
+         "00:00:00.00>CRE {} B744 0 0 0 {} 250\n\n"
+         "00:00:00.00>OP").format(acid, str(altitude))
+
+    p = tmpdir.mkdir("scenario").join("scenario.scn")
+    p.write(scenario_content)
+    return p
+
+
+# Suppress the DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
+@pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
+def test_send_event_stackcmd_ic_alt(server, scenario_filename):
+    """ Send the 'STACKCMD' event to initialise a scenario & order a change of altitude. """
+
+    # Check the (temporary) scenario file exists.
+    # Note that the IC command only accepts a filename argument.
+    assert os.path.isfile(scenario_filename)
+
+    try:
+        target = get_client()
+
+        # Reset the simulation
+        target.send_event(b'STACKCMD', 'RESET', target=b'*')
+
+        # Wait for the RESET event to be processed.
+        # Omitting this line breaks the test; in that case the text response to the POS
+        # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
+        time.sleep(1)
+
+        # Initialise the scenario.
+        target.send_event(b'STACKCMD', 'IC {}'.format(scenario_filename), target=b'*')
+
+        # Define an attribute name to hold the result (i.e. the text returned by the POS command).
+        attr_name = "result"
+
+        # Poll for aircraft position information.
+        poll_for_position(target, server, acid, attr_name)
+
+        # Check the result, i.e. the text returned by the POS command.
+        result = getattr(target, attr_name)
+        assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
+        assert result.find('Alt: {} ft'.format(str(altitude))) != -1, "Failed to find aircraft altitude information"
+
+        # Send an ALT command to instruct the aircraft to ascend.
+        new_altitude = altitude + 10
+        alt_command = 'ALT {} {}'.format(acid, new_altitude)
+
+        # temp:
+        print('Sending ' + alt_command)
+
+        target.send_event(b'STACKCMD', alt_command, target=b'*')
+
+        # Poll for aircraft position information, terminating only when the new altitude is reported.
+        target_string = 'Alt: {} ft'.format(str(new_altitude))
+        poll_for_position(target, server, acid, attr_name, target_string)
 
     finally:
         target.send_event(b'QUIT')
