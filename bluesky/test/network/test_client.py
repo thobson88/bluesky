@@ -1,6 +1,9 @@
 """
 Tests for the BlueSky client base class.
 
+Run configuration must specify the working directory to be the project root 'bluesky' directory.
+Otherwise the attempt to start the BlueSky server will fail inside the addnodes() method (in server.py).
+
 Author <thobson@turing.ac.uk> Tim Hobson
 """
 
@@ -18,7 +21,7 @@ STREAM_PORT = 9001
 acid = '1000'
 altitude = 17000
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def server():
     """ Start the server in headless mode. """
     try:
