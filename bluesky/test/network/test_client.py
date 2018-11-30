@@ -137,7 +137,7 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
 
 
 # Suppress DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
-@pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:PendingDeprecationWarning")
 def test_send_event_stackcmd_cre_pos(server):
     """ Send the 'STACKCMD' event to create an aircraft & poll for its position. """
 
@@ -193,7 +193,7 @@ def scenario_filename(tmpdir):
 
 
 # Suppress DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
-@pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:PendingDeprecationWarning")
 def test_send_event_stackcmd_ic_alt(server, scenario_filename):
     """ Send the 'STACKCMD' event to initialise a scenario & order a change of altitude. """
 
