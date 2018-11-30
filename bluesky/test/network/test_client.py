@@ -1,8 +1,12 @@
 """
 Tests for the BlueSky client base class.
 
-Run configuration must specify the working directory to be the project root 'bluesky' directory.
-Otherwise the attempt to start the BlueSky server will fail inside the addnodes() method (in server.py).
+Run from the command line (from the project root 'bluesky' directory):
+pytest bluesky/test/network/test_client.py
+
+Run from an IDE:
+Run configuration must specify the working directory to be the project root 'bluesky' directory,
+otherwise the attempt to start the BlueSky server will fail inside the addnodes() method (in server.py).
 
 Author <thobson@turing.ac.uk> Tim Hobson
 """
@@ -217,7 +221,7 @@ def test_send_event_stackcmd_ic_alt(server, scenario_filename):
         # Poll for aircraft position information.
         poll_for_position(target, server, acid, attr_name)
 
-        # Check the result, i.e. the text returned by the POS command.
+        # Check the aircraft is at the expected altitude
         result = getattr(target, attr_name)
         assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
         assert result.find('Alt: {} ft'.format(str(altitude))) != -1, "Failed to find aircraft altitude information"
@@ -225,15 +229,18 @@ def test_send_event_stackcmd_ic_alt(server, scenario_filename):
         # Send an ALT command to instruct the aircraft to ascend.
         new_altitude = altitude + 10
         alt_command = 'ALT {} {}'.format(acid, new_altitude)
-
-        # temp:
-        print('Sending ' + alt_command)
-
         target.send_event(b'STACKCMD', alt_command, target=b'*')
 
         # Poll for aircraft position information, terminating only when the new altitude is reported.
         target_string = 'Alt: {} ft'.format(str(new_altitude))
         poll_for_position(target, server, acid, attr_name, target_string)
+
+        # Check the aircraft is at the new altitude.
+        result = getattr(target, attr_name)
+        assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
+        assert result.find('Alt: {} ft'.format(str(new_altitude))) != -1, "Failed to verify new aircraft altitude"
+
+        assert new_altitude != altitude, "Original and new altitudes must not be equal"
 
     finally:
         target.send_event(b'QUIT')
