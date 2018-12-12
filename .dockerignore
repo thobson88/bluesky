@@ -1,0 +1,8 @@
+
+docs/
+extra/
+
+.git
+.cache
+.pytest_cache
+.idea

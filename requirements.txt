@@ -2,7 +2,9 @@ pyqt5
 numpy
 scipy
 matplotlib
+pyopengl
 pyopengl-accelerate
 msgpack
 zmq
 pygame
+pandas

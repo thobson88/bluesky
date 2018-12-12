@@ -1,4 +1,7 @@
 """ QTGL Gui for BlueSky."""
+
+import sys
+
 try:
     from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
         QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
@@ -85,7 +88,7 @@ def start(mode):
     splash.finish(win)
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
-    if mode == 'client':
+    if mode == 'client' and '--docker' not in sys.argv:
         dialog = DiscoveryDialog(win)
         dialog.show()
         bs.net.start_discovery()
