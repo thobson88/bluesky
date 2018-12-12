@@ -18,6 +18,8 @@ Dockerfile
 # Python
 __pycache__/
 .pylintrc
+.cache
+.pytest_cache
 
 # Custom
 
@@ -25,3 +27,4 @@ docs/
 venv/
 turing/
 utils/
+extra/
