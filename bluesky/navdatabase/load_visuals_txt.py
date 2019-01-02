@@ -42,7 +42,7 @@ def load_coastline_txt():
 
 
 # Don't try this if BlueSky is started in pygame mode
-if not bs.pygame:
+if bs.gui and not bs.pygame:
     from bluesky.ui.polytools import PolygonSet, BoundingBox
 
     try:

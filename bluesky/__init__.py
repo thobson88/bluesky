@@ -13,6 +13,7 @@ INIT, HOLD, OP, END = list(range(4))
 
 # Startup flags
 pygame = False
+gui = True
 startup_scnfile = ''
 
 # Main singleton objects in BlueSky
@@ -35,6 +36,10 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
     """
     # Initialize global settings first, possibly loading a custom config file
     settings.init(cfgfile)
+
+    # Is the gui required?
+    global gui
+    gui = (mode[:6] == 'client') or (mode[-3:] == 'gui')
 
     # Is this a server running headless?
     headless = (mode[-8:] == 'headless')
