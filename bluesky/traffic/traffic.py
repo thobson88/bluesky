@@ -1,10 +1,15 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
+
 try:
     from collections.abc import Collection
 except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+    try:
+        # In python <3.3 collections.abc doesn't exist
+        from collections import Collection
+    except:
+        pass
+
 import numpy as np
 from math import *
 from random import randint
@@ -29,24 +34,21 @@ from .turbulence import Turbulence
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
+settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
-try:
-    if settings.performance_model == 'bluesky':
-        print('Using BlueSky performance model')
-        from .performance.legacy.perfbs import PerfBS as Perf
-
-    elif settings.performance_model == 'bada':
+if settings.performance_model == 'bada':
+    try:
         print('Using BADA Perfromance model')
         from .performance.bada.perfbada import PerfBADA as Perf
-
-    elif settings.performance_model == 'openap':
-        print('Using Open Aircrafft Perfromance (OpenAP) model')
+    except ImportError as err:
+        print(err.args[0])
+        print('Falling back to Open Aircraft Performance (OpenAP) model')
         from .performance.openap import OpenAP as Perf
-
-except ImportError as err:
-    print(err.args[0])
-    print('Falling back to BlueSky performance model')
+elif settings.performance_model == 'openap':
+    print('Using Open Aircraft Performance (OpenAP) model')
+    from .performance.openap import OpenAP as Perf
+else:
+    print('Using BlueSky legacy performance model')
     from .performance.legacy.perfbs import PerfBS as Perf
 
 
@@ -344,7 +346,8 @@ class Traffic(TrafficArrays):
         """Delete an aircraft"""
         # If this is a multiple delete, sort first for list delete
         # (which will use list in reverse order to avoid index confusion)
-        if isinstance(idx, Collection):
+
+        if isinstance(idx, np.ndarray):
             idx.sort()
 
         # Call the actual delete function
@@ -386,7 +389,7 @@ class Traffic(TrafficArrays):
         self.UpdatePosition(simdt)
 
         #---------- Legacy and BADA Performance Update ------------------------
-        if settings.performance_model in ['bluesky', 'bada']:
+        if settings.performance_model != 'openap':
             self.perf.perf(simt)
 
         #---------- Simulate Turbulence -----------------------

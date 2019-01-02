@@ -1,11 +1,14 @@
 """ Node encapsulates the sim process, and manages process I/O. """
 import os
-import zmq
+
 import msgpack
+import zmq
+
 import bluesky
 from bluesky import stack
-from bluesky.tools import Timer
+from bluesky.network.common import get_hexid
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
+from bluesky.tools import Timer
 
 
 class Node(object):
@@ -40,7 +43,7 @@ class Node(object):
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        print('Node started, id={}'.format(self.node_id))
+        print('Node started, id={}'.format(get_hexid(self.node_id)))
 
         # run() implements the main loop
         self.run()
@@ -81,4 +84,5 @@ class Node(object):
         self.event_io.send_multipart(target + [eventname, pydata])
 
     def send_stream(self, name, data):
-        self.stream_out.send_multipart([name + self.node_id, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
+        self.stream_out.send_multipart(
+            [name + self.node_id, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
