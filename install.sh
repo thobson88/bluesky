@@ -54,4 +54,4 @@ fi
 printf "Installation successful\n"
 printf "To run BlueSky in headless mode:\n"
 printf "> source venv/bin/activate\n"
-printf "> python3 BlueSky.py --headless\n"
+printf "> python BlueSky.py --headless\n"
