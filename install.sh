@@ -8,6 +8,14 @@ else
     exit 1  
 fi
 
+# Check for pip.
+if command -v python3 &>/dev/null; then
+    printf "Found pip\n"
+else
+    printf "Please install pip\n"
+    exit 1
+fi
+
 if [ -e "venv" ]; then
     printf "Virtual environment venv already exists\n"
     exit 1
