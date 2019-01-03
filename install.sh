@@ -9,7 +9,7 @@ else
 fi
 
 # Check for pip.
-if command -v python3 &>/dev/null; then
+if command -v pip &>/dev/null; then
     printf "Found pip\n"
 else
     printf "Please install pip\n"
