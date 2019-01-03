@@ -12,12 +12,20 @@ fi
 if command -v pip &>/dev/null; then
     printf "Found pip\n"
 else
-    printf "Please install pip\n"
+    printf "Please install python-pip\n"
     exit 1
 fi
 
 if [ -e "venv" ]; then
     printf "Virtual environment venv already exists\n"
+    exit 1
+fi
+
+# Check for virtualenv
+if command -v virtualenv &>/dev/null; then
+    printf "Found virtualenv\n"
+else
+    printf "Please install virtualenv\n"
     exit 1
 fi
 
