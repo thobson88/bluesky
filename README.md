@@ -36,3 +36,31 @@ containing the same commands with a time stamp before the command ("HH:MM:SS.hh>
 ## Contributions
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project.
+
+## Headless BlueSky - Installation on Ubuntu 18.04.1
+
+Python 3.6.4 is included in Ubuntu 18.04.1 (to confirm this execute `python3 -V`).
+
+Checkout the headless branch of this repo and run the install script (with an optional argument for the virtual environment name, which defaults to `venv`):
+```
+./install.sh
+```
+
+If necessary, install `pip`, `tkinter` and `virtualenv`:
+```
+sudo apt-get install python3-pip
+sudo apt-get install python3-tk
+sudo pip3 install virtualenv
+```
+
+then re-run the install script.
+
+Once installed, activate the virtual environment:
+```
+source venv/bin/activate
+```
+
+and run BlueSky in headless mode:
+```
+python BlueSky.py --headless
+```

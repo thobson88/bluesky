@@ -35,6 +35,14 @@ else
     exit 1
 fi
 
+# matplotlib imports tkinter
+python3 -c "import tkinter"
+status=$?
+if [[ $status != 0 ]]; then
+    printf "Please install python3-tk\n"
+    exit 1
+fi
+
 # Create a virtual environment.
 printf "Creating virtual environment: $venvname\n"
 pip3 install --upgrade virtualenv
@@ -60,14 +68,6 @@ if [[ $(uname -s) == Darwin ]]; then
         printf "Adding ~/.matplotlib/matplotlibrc\n"
         echo "backend: TkAgg" >> $HOME/.matplotlib/matplotlibrc
     fi
-fi
-
-# matplotlib imports tkinter
-python3 -c "import tkinter"
-status=$?
-if [[ $status != 0 ]]; then
-    printf "Please install python3-tk\n"
-    exit 1
 fi
 
 printf "Installation successful\n"
