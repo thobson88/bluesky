@@ -63,7 +63,7 @@ if [[ $(uname -s) == Darwin ]]; then
 fi
 
 # matplotlib imports tkinter
-python -c "import tkinter"
+python3 -c "import tkinter"
 status=$?
 if [[ $status != 0 ]]; then
     printf "Please install python3-tk\n"
