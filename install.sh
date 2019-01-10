@@ -8,11 +8,11 @@ else
     exit 1
 fi
 
-# Check for pip.
-if command -v pip &>/dev/null; then
-    printf "Found pip\n"
+# Check for pip3.
+if command -v pip3 &>/dev/null; then
+    printf "Found pip3\n"
 else
-    printf "Please install python-pip\n"
+    printf "Please install python3-pip\n"
     exit 1
 fi
 
@@ -37,14 +37,14 @@ fi
 
 # Create a virtual environment.
 printf "Creating virtual environment: $venvname\n"
-pip install --upgrade virtualenv
+pip3 install --upgrade virtualenv
 virtualenv -p python3 $venvname
 
 printf "Activating virtual environment\n"
 source $venvname/bin/activate
 
 printf "Installing dependencies\n"
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 status=$?
 if [[ $status != 0 ]]; then
