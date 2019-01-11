@@ -1,5 +1,6 @@
 ''' BlueSky client base class. '''
 import os
+import time
 
 import msgpack
 import time
