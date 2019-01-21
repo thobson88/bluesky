@@ -2,6 +2,7 @@
 import os
 
 import msgpack
+import time
 import zmq
 
 import bluesky
@@ -76,14 +77,26 @@ class Client(object):
         ''' Unsubscribe from a stream. '''
         self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
 
-    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp', timeout=None):
+        """ Connect the event and stream sockets to a server """
         conbase = '{}://{}'.format(protocol, hostname)
         econ = conbase + (':{}'.format(event_port) if event_port else '')
         scon = conbase + (':{}'.format(stream_port) if stream_port else '')
         self.event_io.setsockopt(zmq.IDENTITY, self.client_id)
         self.event_io.connect(econ)
         self.send_event(b'REGISTER')
-        self.host_id = self.event_io.recv_multipart()[0]
+
+        if timeout is None:
+            self.host_id = self.event_io.recv_multipart()[0]
+        else:
+            time.sleep(timeout)
+            try:
+                self.host_id = self.event_io.recv_multipart(zmq.NOBLOCK)[0]
+            except zmq.ZMQError as e:
+                self.event_io.setsockopt(zmq.LINGER, 0)
+                self.event_io.close()
+                raise TimeoutError('No message received from server after {} second(s)'.format(timeout)) from e
+
         print('Client {} connected to host {}'.format(get_hexid(self.client_id), get_hexid(self.host_id)))
         self.stream_in.connect(scon)
 
