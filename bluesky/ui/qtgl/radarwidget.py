@@ -262,7 +262,7 @@ class RadarWidget(QGLWidget):
 
         self.custwplatbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplonbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
-        self.custwplblbuf = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
+        self.custwplblbuf = create_empty_buffer(MAX_CUST_WPT * 10, usage=gl.GL_STATIC_DRAW)
 
         # ------- Map ------------------------------------
         mapvertices = np.array([(-90.0, 540.0), (-90.0, -540.0), (90.0, -540.0), (90.0, 540.0)], dtype=np.float32)
@@ -363,7 +363,7 @@ class RadarWidget(QGLWidget):
         self.customwp  = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=palette.wptsymbol)
         self.customwp.bind_attrib(ATTRIB_LAT, 1, self.custwplatbuf, instance_divisor=1)
         self.customwp.bind_attrib(ATTRIB_LON, 1, self.custwplonbuf, instance_divisor=1)
-        self.customwplbl = self.font.prepare_text_instanced(self.custwplblbuf, (5, 1), self.custwplatbuf, self.custwplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.customwplbl = self.font.prepare_text_instanced(self.custwplblbuf, (10, 1), self.custwplatbuf, self.custwplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.customwplbl.bind_color(palette.wptlabel)
         # ------- Airports -------------------------------
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
@@ -576,6 +576,8 @@ class RadarWidget(QGLWidget):
             self.font.set_block_size(self.wptlabels.block_size)
             self.wptlabels.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
+                self.font.set_char_size(self.customwplbl.char_size)
+                self.font.set_block_size(self.customwplbl.block_size)
                 self.customwplbl.draw(n_instances=self.ncustwpts)
 
         if actdata.show_traf and self.route.vertex_count > 1:
@@ -798,7 +800,7 @@ class RadarWidget(QGLWidget):
                 self.traillines.set_vertex_count(0)
 
     def cmdline_stacked(self, cmd, args):
-        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE','POLYLINE']:
             self.polyprev.set_vertex_count(0)
 
     def previewpoly(self, shape_type, data_in=None):
@@ -818,6 +820,12 @@ class RadarWidget(QGLWidget):
             data[6:8] = data_in[0], data_in[3]
         else:
             data = np.array(data_in, dtype=np.float32)
+
+        if shape_type[-4:] == 'LINE':
+            self.polyprev.set_primitive_type(gl.GL_LINE_STRIP)
+        else:
+            self.polyprev.set_primitive_type(gl.GL_LINE_LOOP)
+
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(int(len(data) / 2))
 
@@ -1005,7 +1013,7 @@ class RadarWidget(QGLWidget):
         if self.mousepos != self.prevmousepos:
             cmd = console.get_cmd()
             nargs = len(console.get_args())
-            if cmd in ['AREA', 'BOX', 'POLY',
+            if cmd in ['AREA', 'BOX', 'POLY','POLYLINE',
                        'POLYALT', 'POLYGON', 'CIRCLE', 'LINE'] and nargs >= 2:
                 self.prevmousepos = self.mousepos
                 try:
