@@ -46,6 +46,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "AIRPORT": "POS",
              "AIRWAYS": "AIRWAY",
              "CALL": "PCALL",
+             "CHDIR": "CD",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -63,12 +64,16 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "HMETH": "RMETHH",
              "HRESOM": "RMETHH",
              "HRESOMETH": "RMETHH",
+             "LINES":"POLYLINE",
              "LOAD": "IC",
              "OPEN": "IC",
              "PAUSE": "HOLD",
              "PLUGIN": "PLUGINS",
              "PLUG-IN": "PLUGINS",
              "PLUG-INS": "PLUGINS",
+             "POLYGON":"POLY",
+             "POLYLINES":"POLYLINE",
+             "PRINT": "ECHO",
              "Q": "QUIT",
              "RTF": "DTMULT",
              "STOP": "QUIT",
@@ -121,7 +126,8 @@ sender_rte = None  # bs net route to sender
 
 # When SAVEIC is used, we will also have a recoding scenario file handle
 savefile = None # File object of recording scenario file
-defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT"] # Commands to be excluded, default
+defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT","PCALL","CALC","FF",
+           "IC","OP","HOLD","RESE","MCRE","CRE","TRAFGEN"] # Commands to be excluded, default
 saveexcl = defexcl
 saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
 
@@ -268,6 +274,12 @@ def init(startup_scnfile):
             "string",
             calculator,
             "Simple in-line math calculator, evaluates expression"
+        ],
+        "CD": [
+            "CD [path]",
+            "[txt]",
+            setscenpath,
+            "Change to a different scenario folder"
         ],
         "CDMETHOD": [
             "CDMETHOD [method]",
@@ -567,6 +579,12 @@ def init(startup_scnfile):
             "txt,alt,alt,latlon,...",
             lambda name, top, bottom, *coords: areafilter.defineArea(name, 'POLYALT', coords, top, bottom),
             "Define a polygon-shaped area in 3D: between two altitudes"
+        ],
+        "POLYLINE": [
+            "POLYLINE name,lat,lon,lat,lon,...",
+            "txt,latlon,...",
+            lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
+            "Draw a multi-segment line on the radar screen"
         ],
         "POS": [
             "POS acid/waypoint",
@@ -1043,6 +1061,8 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
         scentime = []
         scencmd  = []
 
+    insidx = 0
+    instime = bs.sim.simt
     with open(fname_full, 'r') as fscen:
         for line in fscen:
 
@@ -1052,26 +1072,61 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
                     line = line.replace("%" + str(iarg), pcall_arglst[iarg])
 
             # Skip emtpy lines and comments
-            if len(line.strip()) > 12 and line.strip()[0] != "#":
-                # Try reading timestamp and command
-                try:
-                    icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0]) * 3600.0
-                    imin = int(ttxt[1]) * 60.0
-                    xsec = float(ttxt[2])
-                    scentime.append(ihr + imin + xsec + t_offset)
-                    scencmd.append(line[icmdline + 1:].strip("\n"))
-                except:
-                    if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print("except this:" + line)
-                    pass  # nice try, we will just ignore this syntax error
+            if len(line.strip()) < 12 or line.strip()[0] == "#":
+                continue
 
-    if mergeWithExisting:
-        # If we are merging we need to sort the resulting command list
-        scentime, scencmd = [list(x) for x in zip(*sorted(
-            zip(scentime, scencmd), key=lambda pair: pair[0]))]
+            # Try reading timestamp and command
+            try:
+                icmdline = line.index('>')
+                tstamp = line[:icmdline]
+                ttxt = tstamp.strip().split(':')
+                ihr = int(ttxt[0]) * 3600.0
+                imin = int(ttxt[1]) * 60.0
+                xsec = float(ttxt[2])
+                cmdtime = ihr + imin + xsec + t_offset
+                if not scentime or cmdtime > scentime[-1]:
+                    scentime.append(cmdtime)
+                    scencmd.append(line[icmdline + 1:].strip("\n"))
+                else:
+                    if cmdtime > instime:
+                        insidx, instime = next(((i - 1, t)
+                            for i, t in enumerate(scentime) if t > cmdtime),
+                                (len(scentime), scentime[-1]))
+                    scentime.insert(insidx, cmdtime)
+                    scencmd.insert(insidx, line[icmdline + 1:].strip("\n"))
+                    insidx += 1
+            except:
+                if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
+                    print("except this:" + line)
+                pass  # nice try, we will just ignore this syntax error
+
+    # for t, c in zip(scentime, scencmd):
+    #     print(t, '>', c)
+    # if mergeWithExisting:
+    #     # If we are merging we need to sort the resulting command list
+    #     scentime, scencmd = [list(x) for x in zip(*sorted(
+    #         zip(scentime, scencmd), key=lambda pair: pair[0]))]
+
+    return True
+
+def setscenpath(newpath):
+
+    if len(newpath)==0:
+        return False,"Needs an absolute or relative path"
+
+    # Check whether path exists
+    relpath = newpath.count(":")==0 and not (newpath[0]=="/" or newpath[0]=="\\")
+    if relpath:
+        abspath = os.path.join(settings.scenario_path,newpath)
+    else:
+        abspath = newpath
+
+    # If this is a relative path we need to prefix scenario folder
+    if not os.path.exists(abspath):
+        return False, "Error: cannot find path: " + abspath
+
+    # Change path
+    settings.scenario_path = abspath
 
     return True
 
@@ -1387,7 +1442,8 @@ def process():
                 echotext = "Unknown command: " + cmd
 
         # Always return on command
-        bs.scr.echo(echotext, echoflags)
+        if echotext:
+            bs.scr.echo(echotext, echoflags)
         #**********************************************************************
         #======================  End of command branches ======================
         #**********************************************************************

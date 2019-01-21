@@ -229,6 +229,24 @@ class Traffic(TrafficArrays):
         if acspd is None:
             acspd = np.random.randint(250, 450, n) * kts
 
+        # SAVEIC: save cre command when filled in
+        # Special provision in case SAVEIC is on: then save individual CRE commands
+        # Names of aircraft (acid) need to be recorded for saved future commands
+        # And positions need to be the same in case of *MCRE"
+
+        if type(aclat)==float or type(aclat)==int:
+            bs.stack.savecmd(" ".join(["CRE", acid[0], actype[0],
+                                       str(aclat), str(aclon), str(int(round(achdg))),
+                                       str(int(round(acalt/ft))),
+                                       str(int(round(acspd/kts)))]))
+        else:
+            for i in range(n):
+                bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
+                                            str(aclat[i]), str(aclon[i]), str(int(round(achdg[i]))),
+                                            str(int(round(acalt[i]/ft))),
+                                            str(int(round(acspd[i]/kts)))]))
+
+
         # Aircraft Info
         self.id[-n:]   = acid
         self.type[-n:] = actype
@@ -253,10 +271,12 @@ class Traffic(TrafficArrays):
 
         # Wind
         if self.wind.winddim > 0:
-            vnwnd, vewnd     = self.wind.getdata(self.lat[-n:], self.lon[-n:], self.alt[-n:])
-            self.gsnorth[-n:] = self.gsnorth[-n:] + vnwnd
-            self.gseast[-n:]  = self.gseast[-n:]  + vewnd
-            self.trk[-n:]     = np.degrees(np.arctan2(self.gseast[-n:], self.gsnorth[-n:]))
+            applywind         = self.alt[-n:]> 50.*ft
+            vnwnd, vewnd      = self.wind.getdata(self.lat[-n:], self.lon[-n:], self.alt[-n:])
+            self.gsnorth[-n:] = self.gsnorth[-n:] + vnwnd*applywind
+            self.gseast[-n:]  = self.gseast[-n:]  + vewnd*applywind
+            self.trk[-n:]     = np.logical_not(applywind)*achdg +\
+                                applywind*np.degrees(np.arctan2(self.gseast[-n:], self.gsnorth[-n:]))
             self.gs[-n:]      = np.sqrt(self.gsnorth[-n:]**2 + self.gseast[-n:]**2)
 
         # Traffic performance data
@@ -437,12 +457,17 @@ class Traffic(TrafficArrays):
             self.trk = self.hdg
 
         else:
-            windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
-            self.gsnorth  = self.tas * np.cos(np.radians(self.hdg)) + windnorth
-            self.gseast   = self.tas * np.sin(np.radians(self.hdg)) + windeast
+            applywind = self.alt>50.*ft # Only apply wind when airborne and flying
 
-            self.gs  = np.sqrt(self.gsnorth**2 + self.gseast**2)
-            self.trk = np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
+            windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
+            self.gsnorth  = self.tas * np.cos(np.radians(self.hdg)) + windnorth*applywind
+            self.gseast   = self.tas * np.sin(np.radians(self.hdg)) + windeast*applywind
+
+            self.gs  = np.logical_not(applywind)*self.tas + \
+                       applywind*np.sqrt(self.gsnorth**2 + self.gseast**2)
+
+            self.trk = np.logical_not(applywind)*self.hdg + \
+                       applywind*np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
 
     def UpdatePosition(self, simdt):
         # Update position
