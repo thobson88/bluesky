@@ -36,3 +36,27 @@ containing the same commands with a time stamp before the command ("HH:MM:SS.hh>
 ## Contributions
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project.
+
+## Installation
+
+Run the install script to create the required Python virtual environment (optionally with the `--headless` flag to omit GUI dependencies for a minimal installation):
+> ./install [--headless]
+
+Then follow the instructions at the end of the script.
+
+It may be necessary to first install pip, tkinter and virtualenv, e.g. on Ubuntu do:
+
+```
+sudo apt-get install python3-pip
+sudo apt-get install python3-tk
+sudo pip3 install virtualenv
+```
+then re-run the install script.
+
+## Docker support
+
+To run in a Docker container:
+```
+docker-compose build
+docker-compose up
+```
