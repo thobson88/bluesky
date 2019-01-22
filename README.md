@@ -37,7 +37,7 @@ containing the same commands with a time stamp before the command ("HH:MM:SS.hh>
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project.
 
-## Installation
+## Installation on Linux/Mac
 
 Run the install script to create the required Python virtual environment (optionally with the `--headless` flag to omit GUI dependencies for a minimal installation):
 > ./install [--headless]
