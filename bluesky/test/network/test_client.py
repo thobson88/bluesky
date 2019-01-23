@@ -79,7 +79,7 @@ def test_send_event_quit(server):
         shutdown_server(server)
 
 
-def poll_for_position(client, server, acid, attr_name, target_string = 'Info on {}'.format(acid)):
+def poll_for_position(client, server, acid, attr_name, target_string='Info on {}'.format(acid), timeout=10):
     """ Poll the server for aircraft position.
 
     Keyword arguments:
@@ -88,6 +88,7 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
         acid -- an aircraft ID
         attr_name -- name of attribute to be added to client; will contain the result text returned by the POS command
         target_string -- a target string to be sought in the info returned by the POS command (default 'Info on <acid>')
+        timeout -- a timeout in seconds
 
     This function will not return until the target_string is found in the result text returned by the POS command.
     """
@@ -112,7 +113,8 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
 
     # Keep polling until the target string is found in the result text.
     done = False
-    while not done:
+    start_time = time.time()
+    while not done and time.time() < start_time + timeout:
         try:
             # Poll for aircraft location.
             client.send_event(b'STACKCMD', pos_command_data, target=b'*')
