@@ -79,7 +79,7 @@ def test_send_event_quit(server):
         shutdown_server(server)
 
 
-def poll_for_position(client, server, acid, attr_name, target_string = 'Info on {}'.format(acid)):
+def poll_for_position(client, server, acid_, attr_name, target_string, timeout=10):
     """ Poll the server for aircraft position.
 
     Keyword arguments:
@@ -88,6 +88,7 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
         acid -- an aircraft ID
         attr_name -- name of attribute to be added to client; will contain the result text returned by the POS command
         target_string -- a target string to be sought in the info returned by the POS command (default 'Info on <acid>')
+        timeout -- a timeout in seconds
 
     This function will not return until the target_string is found in the result text returned by the POS command.
     """
@@ -108,11 +109,12 @@ def poll_for_position(client, server, acid, attr_name, target_string = 'Info on 
     client.event_received.connect(event_subscriber)
 
     # Define the POS command to poll for aircraft location.
-    pos_command_data = 'POS ' + acid
+    pos_command_data = 'POS ' + acid_
 
     # Keep polling until the target string is found in the result text.
     done = False
-    while not done:
+    start_time = time.time()
+    while not done and time.time() < start_time + timeout:
         try:
             # Poll for aircraft location.
             client.send_event(b'STACKCMD', pos_command_data, target=b'*')
@@ -163,7 +165,7 @@ def test_send_event_stackcmd_cre_pos(server):
         attr_name = "result"
 
         # Poll for aircraft position information.
-        poll_for_position(target, server, acid, attr_name)
+        poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
 
         # Check the result, i.e. the text returned by the POS command.
         result = getattr(target, attr_name)
@@ -180,7 +182,8 @@ def scenario_filename(tmpdir):
     """Write a temporary file containing scenario content and return the filename."""
 
     scenario_content = \
-        ("00:00:00.00>HOLD\n"
+        ("00:00:00.00>OP\n"
+         "00:00:00.00>HOLD\n"
          "00:00:00.00>SSD ALL\n"
          "00:00:00.00>ZOOM OUT 100\n"
          "00:00:00.00>PAN 0 0\n\n"
@@ -219,7 +222,7 @@ def test_send_event_stackcmd_ic_alt(server, scenario_filename):
         attr_name = "result"
 
         # Poll for aircraft position information.
-        poll_for_position(target, server, acid, attr_name)
+        poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
 
         # Check the aircraft is at the expected altitude
         result = getattr(target, attr_name)
