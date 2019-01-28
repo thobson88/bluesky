@@ -182,7 +182,8 @@ def scenario_filename(tmpdir):
     """Write a temporary file containing scenario content and return the filename."""
 
     scenario_content = \
-        ("00:00:00.00>HOLD\n"
+        ("00:00:00.00>OP\n"
+         "00:00:00.00>HOLD\n"
          "00:00:00.00>SSD ALL\n"
          "00:00:00.00>ZOOM OUT 100\n"
          "00:00:00.00>PAN 0 0\n\n"
