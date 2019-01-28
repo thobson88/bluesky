@@ -79,7 +79,7 @@ def test_send_event_quit(server):
         shutdown_server(server)
 
 
-def poll_for_position(client, server, acid, attr_name, target_string='Info on {}'.format(acid), timeout=10):
+def poll_for_position(client, server, acid_, attr_name, target_string, timeout=10):
     """ Poll the server for aircraft position.
 
     Keyword arguments:
@@ -109,7 +109,7 @@ def poll_for_position(client, server, acid, attr_name, target_string='Info on {}
     client.event_received.connect(event_subscriber)
 
     # Define the POS command to poll for aircraft location.
-    pos_command_data = 'POS ' + acid
+    pos_command_data = 'POS ' + acid_
 
     # Keep polling until the target string is found in the result text.
     done = False
@@ -165,7 +165,7 @@ def test_send_event_stackcmd_cre_pos(server):
         attr_name = "result"
 
         # Poll for aircraft position information.
-        poll_for_position(target, server, acid, attr_name)
+        poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
 
         # Check the result, i.e. the text returned by the POS command.
         result = getattr(target, attr_name)
@@ -221,7 +221,7 @@ def test_send_event_stackcmd_ic_alt(server, scenario_filename):
         attr_name = "result"
 
         # Poll for aircraft position information.
-        poll_for_position(target, server, acid, attr_name)
+        poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
 
         # Check the aircraft is at the expected altitude
         result = getattr(target, attr_name)
