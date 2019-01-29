@@ -8,7 +8,6 @@ python:
   - "3.6"
 
 install:
-  - python3 -m pip install --upgrade pip
   - pip install -r requirements_headless.txt
   - pip install psutil
 
