@@ -4,6 +4,7 @@ python:
 
 install:
   - pip install -r requirements.txt
+  - pip install psutil
 
 script:
-  - pytest --ignore bluesky/test/tcp/ --ignore bluesky/test/traffic/
+  - python3 -m pytest --ignore bluesky/test/tcp/ --ignore bluesky/test/traffic/
