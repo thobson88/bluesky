@@ -21,6 +21,8 @@ from bluesky.network import Client, Server
 # Suppress all DeprecationWarnings for this module
 pytestmark = pytest.mark.filterwarnings("ignore:.*encoding is deprecated.*:DeprecationWarning")
 
+
+
 EVENT_PORT = 9000
 STREAM_PORT = 9001
 
