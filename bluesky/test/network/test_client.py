@@ -157,7 +157,7 @@ def test_send_event_stackcmd_cre_pos(server):
         # Wait for the RESET event to be processed.
         # Omitting this line breaks the test; in that case the text response to the POS
         # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
-        time.sleep(2)
+        time.sleep(10)
 
         # Create an aircraft with a particular ID and altitude.
         cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, str(altitude))
