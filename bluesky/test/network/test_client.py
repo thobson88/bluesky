@@ -66,22 +66,22 @@ def get_client():
     return client
 
 
-# def test_send_event_quit(server):
-#     """Send the 'QUIT' event."""
-#
-#     try:
-#         target = get_client()
-#         assert server.running, "Server not running, but should be"
-#
-#         target.send_event(b'QUIT')
-#
-#         # Wait for the QUIT event to be processed.
-#         time.sleep(0.1)
-#
-#         assert not server.running, "Server running, but shouldn't be"
-#
-#     finally:
-#         shutdown_server(server)
+def test_send_event_quit(server):
+    """Send the 'QUIT' event."""
+
+    try:
+        target = get_client()
+        assert server.running, "Server not running, but should be"
+
+        target.send_event(b'QUIT')
+
+        # Wait for the QUIT event to be processed.
+        time.sleep(0.1)
+
+        assert not server.running, "Server running, but shouldn't be"
+
+    finally:
+        shutdown_server(server)
 
 
 def poll_for_position(client, server, acid_, attr_name, target_string, timeout=10):
@@ -145,41 +145,41 @@ def poll_for_position(client, server, acid_, attr_name, target_string, timeout=1
 
 # Suppress DeprecationWarning, due to msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8') in client.py
 # @pytest.mark.filterwarnings("ignore:.*U.*encoding is deprecated:DeprecationWarning")
-def test_send_event_stackcmd_cre_pos(server):
-    """ Send the 'STACKCMD' event to create an aircraft & poll for its position. """
-
-    try:
-        target = get_client()
-
-        # Reset the simulation
-        target.send_event(b'STACKCMD', 'RESET', target=b'*')
-
-        # Wait for the RESET event to be processed.
-        # Omitting this line breaks the test; in that case the text response to the POS
-        # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
-        time.sleep(10)
-
-        # Create an aircraft with a particular ID and altitude.
-        cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, str(altitude))
-        target.send_event(b'STACKCMD', cre_command_data, target=b'*')
-
-        assert target.sender_id == b'', "Client's sender_id differs from default (empty) value"
-        assert not target.servers, "Client's servers dictionary should be empty, but isn't"
-
-        # Define an attribute name to hold the result (i.e. the text returned by the POS command).
-        attr_name = "result"
-
-        # Poll for aircraft position information.
-        poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
-
-        # Check the result, i.e. the text returned by the POS command.
-        result = getattr(target, attr_name)
-        assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
-        assert result.find('Alt: {} ft'.format(str(altitude))) != -1, "Failed to find aircraft altitude information"
-
-    finally:
-        target.send_event(b'QUIT')
-        shutdown_server(server)
+# def test_send_event_stackcmd_cre_pos(server):
+#     """ Send the 'STACKCMD' event to create an aircraft & poll for its position. """
+#
+#     try:
+#         target = get_client()
+#
+#         # Reset the simulation
+#         target.send_event(b'STACKCMD', 'RESET', target=b'*')
+#
+#         # Wait for the RESET event to be processed.
+#         # Omitting this line breaks the test; in that case the text response to the POS
+#         # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
+#         time.sleep(10)
+#
+#         # Create an aircraft with a particular ID and altitude.
+#         cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, str(altitude))
+#         target.send_event(b'STACKCMD', cre_command_data, target=b'*')
+#
+#         assert target.sender_id == b'', "Client's sender_id differs from default (empty) value"
+#         assert not target.servers, "Client's servers dictionary should be empty, but isn't"
+#
+#         # Define an attribute name to hold the result (i.e. the text returned by the POS command).
+#         attr_name = "result"
+#
+#         # Poll for aircraft position information.
+#         poll_for_position(target, server, acid, attr_name, 'Info on {}'.format(acid))
+#
+#         # Check the result, i.e. the text returned by the POS command.
+#         result = getattr(target, attr_name)
+#         assert result.find('Info on {}'.format(acid)) != -1, "Failed to find aircraft ID information"
+#         assert result.find('Alt: {} ft'.format(str(altitude))) != -1, "Failed to find aircraft altitude information"
+#
+#     finally:
+#         target.send_event(b'QUIT')
+#         shutdown_server(server)
 
 
 @pytest.fixture(scope="function")
