@@ -126,7 +126,7 @@ def poll_for_position(client, server, acid_, attr_name, target_string, timeout=1
             client.receive()
 
             # This pause is not strictly necessary but avoids excessive polling before the server is ready.
-            time.sleep(0.01)
+            time.sleep(0.1)
 
             # Check that the client's servers dictionary is no longer empty.
             assert len(client.servers) == 1, "Client's servers dictionary should have one element"
@@ -157,7 +157,7 @@ def test_send_event_stackcmd_cre_pos(server):
         # Wait for the RESET event to be processed.
         # Omitting this line breaks the test; in that case the text response to the POS
         # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
-        time.sleep(1)
+        time.sleep(2)
 
         # Create an aircraft with a particular ID and altitude.
         cre_command_data = 'CRE {} 0 0 0 0 {} 500'.format(acid, str(altitude))
@@ -218,7 +218,7 @@ def test_send_event_stackcmd_ic_alt(server, scenario_filename):
         # Wait for the RESET event to be processed.
         # Omitting this line breaks the test; in that case the text response to the POS
         # command is constantly: "BlueSky Console Window: Enter HELP or ? for info."
-        time.sleep(1)
+        time.sleep(2)
 
         # Initialise the scenario.
         target.send_event(b'STACKCMD', 'IC {}'.format(scenario_filename), target=b'*')

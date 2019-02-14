@@ -60,3 +60,18 @@ To run in a Docker container:
 docker-compose build
 docker-compose up
 ```
+
+## Connecting to a remote BlueSky Simulation
+
+This will skip discovery and attempt a connection to the specified host (using the default ports):
+
+```bash
+> python BlueSky.py --client --bluesky_host=1.2.3.4
+```
+
+## Tests
+
+To run the unit tests (excluding upstream legacy tests which fail): 
+```
+pytest --ignore bluesky/test/tcp/ --ignore bluesky/test/traffic -W ignore::DeprecationWarning
+```
